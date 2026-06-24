@@ -18,7 +18,10 @@ import {
   AlertCircle,
   Search,
   Keyboard,
-  ArrowUpDown
+  ArrowUpDown,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { QueueState, QueueAction, Patient } from '../types';
 
@@ -27,12 +30,16 @@ interface ReceptionistPanelProps {
   sendAction: (action: QueueAction) => void;
   latencyMs: number | null;
   connectionStatus: 'connected' | 'reconnecting' | 'disconnected';
+  isAuthenticatedForReception?: boolean;
+  onAuthenticate?: () => void;
 }
 
 export default function ReceptionistPanel({
   state,
   sendAction,
   latencyMs,
+  isAuthenticatedForReception = true,
+  onAuthenticate,
   connectionStatus
 }: ReceptionistPanelProps) {
   const [patientName, setPatientName] = useState('');
@@ -42,42 +49,22 @@ export default function ReceptionistPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Authentication state
+  const [usernameInput, setUsernameInput] = useState('');
+  const [accessCodeInput, setAccessCodeInput] = useState('');
+  const [showAccessCodeInput, setShowAccessCodeInput] = useState(false);
+  const [authErrorMsg, setAuthErrorMsg] = useState('');
   const [altHeld, setAltHeld] = useState(false);
   const [showShortcutsLegend, setShowShortcutsLegend] = useState(false);
+
+  // Sorting and Capacity limits hooks
+  const [sortBy, setSortBy] = useState<'waiting' | 'urgency' | 'alphabetical'>('waiting');
+  const [capacityLimit, setCapacityLimit] = useState(8);
 
   const activePatients = state.patients.filter(p => p.status !== 'cancelled');
   const nowServing = activePatients.find(p => p.status === 'current');
   const waitingList = activePatients.filter(p => p.status === 'waiting');
   const seenCount = activePatients.filter(p => p.status === 'seen').length;
-
-  const [sortBy, setSortBy] = useState<'waiting' | 'urgency' | 'alphabetical'>('waiting');
-  const [capacityLimit, setCapacityLimit] = useState(8);
-
-  const filteredPatients = state.patients.filter(patient => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
-    return (
-      patient.name.toLowerCase().includes(query) ||
-      patient.id.toLowerCase().includes(query) ||
-      `#${patient.token}`.includes(query) ||
-      String(patient.token) === query
-    );
-  });
-
-  const sortedPatients = [...filteredPatients].sort((a, b) => {
-    if (sortBy === 'urgency') {
-      const aEmerg = !!a.isEmergency;
-      const bEmerg = !!b.isEmergency;
-      if (aEmerg && !bEmerg) return -1;
-      if (!aEmerg && bEmerg) return 1;
-      return a.addedAt - b.addedAt;
-    }
-    if (sortBy === 'alphabetical') {
-      return a.name.localeCompare(b.name);
-    }
-    // Default: Waiting Time (longest waiting / earliest addedAt first)
-    return a.addedAt - b.addedAt;
-  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -137,6 +124,108 @@ export default function ReceptionistPanel({
       window.removeEventListener('blur', handleBlur);
     };
   }, [waitingList.length, state.nextTokenNumber]);
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (usernameInput.trim() === 'NIKUNJ' && accessCodeInput.trim() === '357') {
+      if (onAuthenticate) {
+        onAuthenticate();
+      }
+      setAuthErrorMsg('');
+    } else {
+      setAuthErrorMsg('Incorrect Username or Unique Code. Access Denied.');
+    }
+  };
+
+  const handleClearCompleted = () => {
+    if (window.confirm("Are you sure you want to clear completed patients from the database?")) {
+      sendAction({ type: 'CLEAR_COMPLETED' });
+    }
+  };
+
+  if (!isAuthenticatedForReception) {
+    return (
+      <div id="receptionist-auth-root" className="glass rounded-2xl shadow-xl overflow-hidden flex flex-col h-full font-sans max-w-md mx-auto">
+        <div className="bg-slate-50/60 border-b border-slate-200 p-6 text-center">
+          <div className="mx-auto w-12 h-12 bg-sky-50 text-sky-600 rounded-full flex items-center justify-center mb-3 border border-sky-100">
+            <Lock size={20} className="animate-pulse" />
+          </div>
+          <h2 className="text-sm font-extrabold text-slate-800 tracking-tight uppercase">Security Bypass</h2>
+          <p className="text-slate-500 text-xs mt-1">Credentials required to access Reception panel</p>
+        </div>
+        <form onSubmit={handleLoginSubmit} className="p-6 flex flex-col gap-4 flex-1 justify-center">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Username</label>
+            <input
+              type="text"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+              placeholder="Enter username (e.g. NIKUNJ)"
+              className="w-full h-10 px-3.5 text-xs bg-white text-slate-800 border border-slate-250 rounded-xl outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 font-semibold"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Unique Code</label>
+            <div className="relative">
+              <input
+                type={showAccessCodeInput ? "text" : "password"}
+                value={accessCodeInput}
+                onChange={(e) => setAccessCodeInput(e.target.value)}
+                placeholder="Enter unique code (e.g. 357)"
+                className="w-full h-10 pl-3.5 pr-10 text-xs bg-white text-slate-800 border border-slate-250 rounded-xl outline-none focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500 font-mono font-bold"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowAccessCodeInput(!showAccessCodeInput)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                {showAccessCodeInput ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+          {authErrorMsg && (
+            <p className="text-rose-600 text-xs font-bold bg-rose-50 border border-rose-100 px-3 py-2 rounded-lg animate-fade-in">
+              ⚠️ {authErrorMsg}
+            </p>
+          )}
+          <button
+            type="submit"
+            className="w-full mt-2 bg-slate-900 hover:bg-slate-800 text-white font-bold h-10 rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5 uppercase tracking-wider text-xs"
+          >
+            <span>Verify & Access Panel</span>
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  const filteredPatients = state.patients.filter(patient => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      patient.name.toLowerCase().includes(query) ||
+      patient.id.toLowerCase().includes(query) ||
+      `#${patient.token}`.includes(query) ||
+      String(patient.token) === query
+    );
+  });
+
+  const sortedPatients = [...filteredPatients].sort((a, b) => {
+    if (sortBy === 'urgency') {
+      const aEmerg = !!a.isEmergency;
+      const bEmerg = !!b.isEmergency;
+      if (aEmerg && !bEmerg) return -1;
+      if (!aEmerg && bEmerg) return 1;
+      return a.addedAt - b.addedAt;
+    }
+    if (sortBy === 'alphabetical') {
+      return a.name.localeCompare(b.name);
+    }
+    // Default: Waiting Time (longest waiting / earliest addedAt first)
+    return a.addedAt - b.addedAt;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -242,14 +331,26 @@ export default function ReceptionistPanel({
 
         {/* Quick Statistics Banner */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-sky-50/50 border border-sky-100/60 rounded-xl p-3.5 text-center">
-            <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">Now Serving</p>
-            <p className="text-2xl font-black text-sky-600 mt-1">
-              {nowServing ? `#${nowServing.token}` : '—'}
-            </p>
-            <p className="text-[10px] text-slate-600 font-bold truncate mt-0.5">
-              {nowServing ? nowServing.name : 'None called'}
-            </p>
+          <div className="bg-sky-50/50 border border-sky-100/60 rounded-xl p-3.5 text-center flex flex-col justify-between items-center min-h-[105px]">
+            <div>
+              <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">Now Serving</p>
+              <p className="text-2xl font-black text-sky-600 mt-1">
+                {nowServing ? `#${nowServing.token}` : '—'}
+              </p>
+              <p className="text-[10px] text-slate-600 font-bold truncate mt-0.5">
+                {nowServing ? nowServing.name : 'None called'}
+              </p>
+            </div>
+            {nowServing && (
+              <button
+                onClick={() => handleCompletePatient(nowServing.id)}
+                id="complete-now-serving-btn"
+                className="mt-2.5 w-full bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg shadow-sm transition-all cursor-pointer uppercase flex items-center justify-center gap-1 border-0"
+              >
+                <CheckCircle size={10} />
+                <span>Complete</span>
+              </button>
+            )}
           </div>
           
           <div className="bg-emerald-50/30 border border-emerald-100/70 rounded-xl p-3.5 text-center">
@@ -472,9 +573,20 @@ export default function ReceptionistPanel({
                       {/* Status indicator / remove action */}
                       <div className="flex items-center gap-2">
                         {isCurrent ? (
-                          <span className="flex items-center gap-1.5 text-[10px] bg-sky-100 text-sky-800 border border-sky-200 font-bold px-2.5 py-1 rounded-lg">
-                            <Clock3 size={11} className="animate-spin-slow" /> Consulting
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1.5 text-[10px] bg-sky-100 text-sky-800 border border-sky-200 font-bold px-2.5 py-1 rounded-lg">
+                              <Clock3 size={11} className="animate-spin-slow" /> Consulting
+                            </span>
+                            <button
+                              onClick={() => handleCompletePatient(patient.id)}
+                              title="Mark as completed & call next"
+                              id={`complete-btn-${patient.id}`}
+                              className="p-1 text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/85 rounded-lg border border-emerald-250 transition-all cursor-pointer font-bold text-[10px] flex items-center gap-0.5"
+                            >
+                              <CheckCircle size={10} />
+                              <span>Complete</span>
+                            </button>
+                          </div>
                         ) : isSeen ? (
                           <span className="flex items-center gap-1 text-[10px] bg-slate-100 text-slate-500 border border-slate-200 font-bold px-2 py-0.5 rounded-md">
                             <CheckCircle size={10} /> Completed
@@ -561,8 +673,17 @@ export default function ReceptionistPanel({
           </div>
         </div>
 
-        {/* Global Reset */}
-        <div className="pt-2.5 border-t border-slate-150 flex justify-end">
+        {/* Global Reset & Clear Completed */}
+        <div className="pt-2.5 border-t border-slate-150 flex justify-between items-center">
+          <button
+            onClick={handleClearCompleted}
+            id="clear-completed-button"
+            className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:bg-sky-50 border border-sky-200 hover:border-sky-300 rounded-lg px-3 py-2 flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <Trash2 size={12} />
+            <span>Clear Completed Tickets</span>
+          </button>
+          
           <button
             onClick={handleResetQueue}
             id="reset-queue-button"

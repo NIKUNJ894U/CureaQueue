@@ -28,7 +28,8 @@ export type QueueAction =
   | { type: 'RESET_QUEUE' }
   | { type: 'CANCEL_PATIENT'; id: string }
   | { type: 'TOGGLE_EMERGENCY'; id: string }
-  | { type: 'COMPLETE_PATIENT'; id: string };
+  | { type: 'COMPLETE_PATIENT'; id: string }
+  | { type: 'CLEAR_COMPLETED' };
 
 export type ServerMessage =
   | { type: 'STATE_INIT'; state: QueueState }

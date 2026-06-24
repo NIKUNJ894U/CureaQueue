@@ -244,11 +244,45 @@ async function handleAction(action: QueueAction) {
       case 'COMPLETE_PATIENT': {
         const p = patientsList.find(x => x.id === action.id);
         if (p) {
+          const wasCurrent = p.status === 'current';
           await setDoc(doc(db, 'patients', p.id), {
             ...p,
             status: 'seen',
             completedAt: Date.now()
           });
+
+          if (wasCurrent) {
+            // Find next waiting patient to auto-call
+            const activePatients = patientsList.filter(x => x.status !== 'cancelled' && x.id !== p.id);
+            const nextWaiting = activePatients
+              .filter(x => x.status === 'waiting')
+              .sort((a, b) => {
+                const aEmerg = !!a.isEmergency;
+                const bEmerg = !!b.isEmergency;
+                if (aEmerg && !bEmerg) return -1;
+                if (!aEmerg && bEmerg) return 1;
+                return a.token - b.token;
+              })[0];
+
+            if (nextWaiting) {
+              await setDoc(doc(db, 'patients', nextWaiting.id), {
+                ...nextWaiting,
+                status: 'current',
+                calledAt: Date.now()
+              });
+            }
+          }
+        }
+        break;
+      }
+
+      case 'CLEAR_COMPLETED': {
+        const snaps = await getDocs(collection(db, 'patients'));
+        for (const docSnap of snaps.docs) {
+          const patientData = docSnap.data() as Patient;
+          if (patientData.status === 'seen') {
+            await deleteDoc(docSnap.ref);
+          }
         }
         break;
       }
@@ -368,6 +402,25 @@ async function startServer() {
       .then(() => {
         console.log("[Clinic Server] Seeding checking complete. Starting live Firestore listeners...");
         setupFirestoreListeners();
+
+        // Start automatic calling system based on Doctor Pace Control (averageConsultTime)
+        console.log("[Clinic Server] Engaging auto-call checks every 5 seconds...");
+        setInterval(async () => {
+          try {
+            const activePatients = patientsList.filter(p => p.status !== 'cancelled');
+            const currentPatient = activePatients.find(p => p.status === 'current');
+            if (currentPatient && currentPatient.calledAt) {
+              const timeElapsedMs = Date.now() - currentPatient.calledAt;
+              const targetMs = configData.averageConsultTime * 60 * 1000;
+              if (timeElapsedMs >= targetMs) {
+                console.log(`[Auto-Call] Consultation time of ${configData.averageConsultTime}m exceeded for T-${currentPatient.token}. Calling next...`);
+                await handleAction({ type: 'CALL_NEXT' });
+              }
+            }
+          } catch (err) {
+            console.error("Error in auto-call check interval:", err);
+          }
+        }, 5000);
       })
       .catch((err) => {
         console.error("[Clinic Server] Background database initialization failed:", err);

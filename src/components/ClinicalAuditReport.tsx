@@ -130,10 +130,6 @@ export default function ClinicalAuditReport() {
             <span className="p-1 px-2.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full border border-indigo-100 tracking-wider uppercase flex items-center gap-1">
               <Activity size={10} /> Administrative Reporting
             </span>
-            <span className="flex items-center gap-1 text-emerald-600 text-xs font-bold bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Firestore Connected
-            </span>
           </div>
           <h2 className="text-base font-extrabold text-slate-800 tracking-tight">
             Clinical Efficiency & Audit Reporting

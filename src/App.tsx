@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Building2, 
   Tv, 
@@ -13,7 +13,9 @@ import {
   Wifi,
   WifiOff,
   Clock,
-  LayoutGrid
+  LayoutGrid,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { QueueState, QueueAction, ClientMessage, ServerMessage } from './types';
 import ReceptionistPanel from './components/ReceptionistPanel';
@@ -21,12 +23,16 @@ import WaitingRoomPanel from './components/WaitingRoomPanel';
 import ClinicalAuditReport from './components/ClinicalAuditReport';
 import LandingPage from './components/LandingPage';
 import CuraQueueLogo from './components/CuraQueueLogo';
+import LobbyTVMode from './components/LobbyTVMode';
 
 export default function App() {
   const [state, setState] = useState<QueueState | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('disconnected');
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const [currentTab, setCurrentTab] = useState<'home' | 'dual' | 'reception' | 'monitor' | 'audit'>('home');
+  const [currentTab, setCurrentTab] = useState<'home' | 'dual' | 'reception' | 'monitor' | 'audit' | 'tv-fullscreen'>('home');
+  const [isReceptionAuthenticated, setIsReceptionAuthenticated] = useState(false);
+
+
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -202,10 +208,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-emerald-50/20 text-slate-800 flex flex-col antialiased">
+    <div className="min-h-screen text-slate-800 flex flex-col antialiased">
       
       {/* Sleek Interface Header */}
-      <header className="glass border-b border-slate-200 sticky top-0 z-30 shadow-xs bg-white/90 backdrop-blur-md">
+      {currentTab !== 'tv-fullscreen' && (
+        <header className="glass border-b border-slate-200 sticky top-0 z-30 shadow-xs bg-white/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-4">
           
           {/* Brand Identity with SVG Logo */}
@@ -222,6 +229,8 @@ export default function App() {
               </p>
             </div>
           </div>
+
+
 
           {/* Navigation Tabs */}
           <nav className="flex bg-slate-100/80 p-0.5 rounded-xl border border-slate-200 gap-1 text-[11px] sm:text-xs flex-wrap justify-center">
@@ -280,12 +289,28 @@ export default function App() {
               <Activity size={13} />
               Clinical Audit
             </button>
+            <button
+              onClick={() => setCurrentTab('tv-fullscreen')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 font-bold transition rounded-lg cursor-pointer ${
+                currentTab === 'tv-fullscreen'
+                  ? 'bg-red-500 text-white shadow-md shadow-red-500/10'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Tv size={13} />
+              🖥️ TV Fullscreen
+            </button>
           </nav>
         </div>
       </header>
+      )}
 
       {/* Main Container Layout */}
-      <main className={`flex-1 flex flex-col justify-start ${currentTab === 'home' ? 'w-full' : 'max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8'}`}>
+      <main className={`flex-1 flex flex-col justify-start ${
+        currentTab === 'home' || currentTab === 'tv-fullscreen' 
+          ? 'w-full' 
+          : 'max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8'
+      }`}>
         {!state ? (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-20">
             <Activity className="animate-spin-slow text-blue-600 mb-3" size={36} />
@@ -309,6 +334,8 @@ export default function App() {
                     sendAction={sendAction}
                     latencyMs={latencyMs}
                     connectionStatus={connectionStatus}
+                    isAuthenticatedForReception={isReceptionAuthenticated}
+                    onAuthenticate={() => setIsReceptionAuthenticated(true)}
                   />
                 </div>
                 
@@ -326,6 +353,8 @@ export default function App() {
                   sendAction={sendAction}
                   latencyMs={latencyMs}
                   connectionStatus={connectionStatus}
+                  isAuthenticatedForReception={isReceptionAuthenticated}
+                  onAuthenticate={() => setIsReceptionAuthenticated(true)}
                 />
               </div>
             )}
@@ -342,30 +371,40 @@ export default function App() {
               </div>
             )}
 
+            {currentTab === 'tv-fullscreen' && (
+              <div className="fixed inset-0 z-50 bg-slate-900 overflow-y-auto">
+                <LobbyTVMode state={state} enableVoice={true} onExitFullscreen={() => setCurrentTab('home')} />
+              </div>
+            )}
+
           </div>
         )}
       </main>
 
       {/* Universal Status Footer */}
-      <footer className="bg-slate-100 border-t border-slate-200 py-3 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>
-            Designed for <strong>India's clinical healthcare adoption</strong> efforts. Offline resilience guaranteed.
-          </span>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <Clock size={12} />
-              Server Time: {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+      {currentTab !== 'tv-fullscreen' && (
+        <footer className="bg-slate-100 border-t border-slate-200 py-3 text-xs text-slate-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>
+              Designed for <strong>India's clinical healthcare adoption</strong> efforts. Offline resilience guaranteed.
             </span>
-            <span className="border-l border-slate-200 pl-3">
-              Client Engine v2.0
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Clock size={12} />
+                Server Time: {new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </span>
+              <span className="border-l border-slate-200 pl-3">
+                Client Engine v1.0
+              </span>
+
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
 
       {/* Brand selector removed - using single site logo across pages */}
 
     </div>
   );
 }
+

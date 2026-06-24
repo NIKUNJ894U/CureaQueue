@@ -1,23 +1,73 @@
-@import "tailwindcss";
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* ── Themeable accent palette (defaults = sky-blue originals) ── */
+  --color-accent-50:  var(--accent-50);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-300: var(--accent-300);
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-850: var(--accent-850);
 }
 
+/* ══════════════════════════════════════════════════════════
+   LIGHT MODE — accent = mint / teal / emerald
+   ══════════════════════════════════════════════════════════ */
+:root,
+[data-theme="light"] {
+  --accent-50:  #ecfdf5;
+  --accent-100: #d1fae5;
+  --accent-200: #a7f3d0;
+  --accent-300: #6ee7b7;
+  --accent-400: #34d399;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-800: #065f46;
+  --accent-850: #064e3b;
+
+  --surface-bg: #ffffff;
+  --surface-card: #ffffff;
+  --surface-card-alpha: rgba(255,255,255,0.85);
+  --surface-card-hover: #f8fafb;
+  --surface-section: rgba(236,253,245,0.4);
+  --surface-footer-bg: #f1f5f9;
+
+  --border-main: #e2e8f0;
+  --border-section: rgba(209,250,229,0.8);
+
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  color-scheme: light;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   BASE STYLES
+   ══════════════════════════════════════════════════════════ */
 body {
-  background-color: #f0f9f4;
+  background-color: var(--surface-bg);
   font-family: var(--font-sans);
+  color: var(--text-primary);
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 /* Sleek Interface Glass styling */
 .glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--surface-card-alpha);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--border-main);
 }
 
 .glass-dark {
@@ -90,3 +140,212 @@ body {
 .animate-radar {
   animation: radar-pulse 3s cubic-bezier(0.25, 1, 0.5, 1) infinite;
 }
+
+
+
+/* ── LIGHT MODE: sky-* → mint/emerald ── */
+[data-theme="light"] .bg-sky-50,
+[data-theme="light"] .bg-sky-50\/40,
+[data-theme="light"] .bg-sky-50\/50,
+[data-theme="light"] .bg-sky-50\/20,
+[data-theme="light"] .bg-sky-50\/60,
+[data-theme="light"] .bg-sky-50\/45 {
+  background-color: #ecfdf5 !important;
+}
+
+[data-theme="light"] .bg-sky-100,
+[data-theme="light"] .bg-sky-100\/50 {
+  background-color: #d1fae5 !important;
+}
+
+[data-theme="light"] .bg-sky-200 {
+  background-color: #a7f3d0 !important;
+}
+
+[data-theme="light"] .bg-sky-300 {
+  background-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .bg-sky-400 {
+  background-color: #34d399 !important;
+}
+
+[data-theme="light"] .bg-sky-500 {
+  background-color: #10b981 !important;
+}
+
+[data-theme="light"] .bg-sky-600 {
+  background-color: #059669 !important;
+}
+
+[data-theme="light"] .hover\:bg-sky-500:hover {
+  background-color: #10b981 !important;
+}
+
+[data-theme="light"] .hover\:bg-sky-600:hover {
+  background-color: #059669 !important;
+}
+
+[data-theme="light"] .hover\:bg-sky-50:hover {
+  background-color: #ecfdf5 !important;
+}
+
+/* Text */
+[data-theme="light"] .text-sky-100 {
+  color: #d1fae5 !important;
+}
+
+[data-theme="light"] .text-sky-300 {
+  color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .text-sky-400 {
+  color: #34d399 !important;
+}
+
+[data-theme="light"] .text-sky-500 {
+  color: #10b981 !important;
+}
+
+[data-theme="light"] .text-sky-600 {
+  color: #059669 !important;
+}
+
+[data-theme="light"] .text-sky-700 {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .text-sky-800 {
+  color: #065f46 !important;
+}
+
+[data-theme="light"] .text-sky-850 {
+  color: #064e3b !important;
+}
+
+/* Borders */
+[data-theme="light"] .border-sky-100,
+[data-theme="light"] .border-sky-100\/60,
+[data-theme="light"] .border-sky-100\/80 {
+  border-color: #d1fae5 !important;
+}
+
+[data-theme="light"] .border-sky-200 {
+  border-color: #a7f3d0 !important;
+}
+
+[data-theme="light"] .border-sky-300 {
+  border-color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .border-sky-400,
+[data-theme="light"] .border-sky-400\/30 {
+  border-color: rgba(52,211,153,0.4) !important;
+}
+
+[data-theme="light"] .border-sky-500 {
+  border-color: #10b981 !important;
+}
+
+/* Fill */
+[data-theme="light"] .fill-sky-600 {
+  fill: #059669 !important;
+}
+
+[data-theme="light"] .fill-sky-700 {
+  fill: #047857 !important;
+}
+
+/* Focus rings */
+[data-theme="light"] .focus\:ring-sky-500\/10:focus {
+  --tw-ring-color: rgba(16,185,129,0.1) !important;
+}
+
+[data-theme="light"] .focus\:border-sky-500:focus {
+  border-color: #10b981 !important;
+}
+
+/* Shadows */
+[data-theme="light"] .shadow-sky-400\/20 {
+  --tw-shadow-color: rgba(52,211,153,0.2) !important;
+}
+
+[data-theme="light"] .shadow-sky-400\/30 {
+  --tw-shadow-color: rgba(52,211,153,0.3) !important;
+}
+
+[data-theme="light"] .shadow-sky-500\/10 {
+  --tw-shadow-color: rgba(16,185,129,0.1) !important;
+}
+
+/* Accent range input */
+[data-theme="light"] .accent-sky-500 {
+  accent-color: #10b981 !important;
+}
+
+/* Blue text → mint in light */
+[data-theme="light"] .text-blue-600 {
+  color: #059669 !important;
+}
+
+[data-theme="light"] .text-blue-300 {
+  color: #6ee7b7 !important;
+}
+
+[data-theme="light"] .text-blue-400 {
+  color: #34d399 !important;
+}
+
+/* ── Dark mode: Landing page specific ── */
+[data-theme="dark"] .bg-\[radial-gradient\(\#e0f2fe_1px\,transparent_1px\)\] {
+  background: radial-gradient(#1e3a5f 1px, transparent 1px) !important;
+}
+
+/* Gradient overrides in light */
+[data-theme="light"] .from-sky-400\/30 {
+  --tw-gradient-from: rgba(52,211,153,0.3) !important;
+}
+
+[data-theme="light"] .from-sky-500 {
+  --tw-gradient-from: #10b981 !important;
+}
+
+[data-theme="light"] .to-sky-600 {
+  --tw-gradient-to: #059669 !important;
+}
+
+[data-theme="light"] .via-sky-600 {
+  --tw-gradient-via: #059669 !important;
+}
+
+[data-theme="light"] .to-cyan-600 {
+  --tw-gradient-to: #0d9488 !important;
+}
+
+/* Nav active tab: sky → mint in light */
+[data-theme="light"] .bg-sky-500.text-white {
+  background-color: #10b981 !important;
+}
+
+/* ── Smooth theme transitions ── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+}
+
+/* Disable transitions on animations to prevent janky keyframes */
+.animate-pulse,
+.animate-ping,
+.animate-spin,
+.animate-bounce,
+.animate-spin-slow,
+.animate-radar,
+.animate-fade-in,
+.status-pulse,
+.status-pulse::after {
+  transition: none !important;
+}
+

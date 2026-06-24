@@ -28,7 +28,14 @@ interface WaitingRoomPanelProps {
 
 export default function WaitingRoomPanel({ state }: WaitingRoomPanelProps) {
   const [selectedTokenNum, setSelectedTokenNum] = useState<number | ''>('');
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lobbyChimeEnabled');
+      return saved === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
   const [searchFeedback, setSearchFeedback] = useState<{
     found: boolean;
     patient?: Patient;
@@ -85,6 +92,11 @@ export default function WaitingRoomPanel({ state }: WaitingRoomPanelProps) {
   const handleToggleAudio = () => {
     const nextVal = !audioEnabled;
     setAudioEnabled(nextVal);
+    try {
+      localStorage.setItem('lobbyChimeEnabled', String(nextVal));
+    } catch (e) {
+      console.warn("localStorage write blocked:", e);
+    }
     if (nextVal) {
       // Play a short demonstration chime to verify audio works and bypass browser gesture blocking
       setTimeout(() => {
@@ -426,87 +438,101 @@ export default function WaitingRoomPanel({ state }: WaitingRoomPanelProps) {
                   Clinic Avg Pace ({avgPace} min)
                 </text>
 
-                {/* Columns rendering */}
+                {/* Line graph rendering */}
                 {(() => {
                   const colWidth = plotWidth / waitTimesData.length;
-                  const barWidth = Math.min(colWidth * 0.5, 30);
                   
-                  return waitTimesData.map((item, index) => {
+                  // Create the path data for the line graph
+                  const points = waitTimesData.map((item, index) => {
                     const xCenter = plotLeft + colWidth * (index + 0.5);
-                    const xBar = xCenter - barWidth / 2;
                     const barHeight = plotHeight * (item.wait / yCeiling);
                     const yBar = plotBottom - barHeight;
-                    const isHovered = hoveredIndex === index;
-
-                    return (
-                      <g 
-                        key={index} 
-                        className="cursor-pointer"
-                        onMouseEnter={() => setHoveredIndex(index)}
-                        onMouseLeave={() => setHoveredIndex(null)}
-                      >
-                        {/* Interactive Invisible Hover Zone */}
-                        <rect 
-                          x={xCenter - colWidth / 2} 
-                          y={plotTop} 
-                          width={colWidth} 
-                          height={plotHeight} 
-                          fill="transparent" 
-                        />
-
-                        {/* Flat baseline patch to make rounded corners grounded */}
-                        <rect 
-                          x={xBar} 
-                          y={plotBottom - 4} 
-                          width={barWidth} 
-                          height={4} 
-                          fill={isHovered ? "url(#activeBarGradient)" : "url(#barGradient)"} 
-                          className="transition-all duration-200"
-                        />
-
-                        {/* Principal rounded bar */}
-                        <rect 
-                          x={xBar} 
-                          y={yBar} 
-                          width={barWidth} 
-                          height={barHeight} 
-                          rx={4} 
-                          fill={isHovered ? "url(#activeBarGradient)" : "url(#barGradient)"} 
-                          className="transition-all duration-200"
-                        />
-
-                        {/* Value indicator on top of bar */}
-                        <text 
-                          x={xCenter} 
-                          y={yBar - 6} 
-                          textAnchor="middle" 
-                          className="text-[9px] font-black font-mono fill-sky-700"
-                        >
-                          {item.wait}m
-                        </text>
-
-                        {/* Patient Token Text label */}
-                        <text 
-                          x={xCenter} 
-                          y={plotBottom + 16} 
-                          textAnchor="middle" 
-                          className="text-[10px] font-bold fill-slate-500 font-mono"
-                        >
-                          T-{item.token}
-                        </text>
-
-                        {/* Patient Name Text label */}
-                        <text 
-                          x={xCenter} 
-                          y={plotBottom + 28} 
-                          textAnchor="middle" 
-                          className="text-[9px] font-bold fill-slate-400 font-sans"
-                        >
-                          {item.name.split(' ')[0]}
-                        </text>
-                      </g>
-                    );
+                    return `${xCenter},${yBar}`;
                   });
+                  
+                  const linePath = points.length > 0 ? `M ${points.join(' L ')}` : '';
+
+                  return (
+                    <>
+                      {/* Singular Slim Line */}
+                      {points.length > 1 && (
+                        <path 
+                          d={linePath} 
+                          fill="none" 
+                          stroke="#0ea5e9" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                        />
+                      )}
+                      
+                      {waitTimesData.map((item, index) => {
+                        const xCenter = plotLeft + colWidth * (index + 0.5);
+                        const barHeight = plotHeight * (item.wait / yCeiling);
+                        const yBar = plotBottom - barHeight;
+                        const isHovered = hoveredIndex === index;
+
+                        return (
+                          <g 
+                            key={index} 
+                            className="cursor-pointer"
+                            onMouseEnter={() => setHoveredIndex(index)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                          >
+                            {/* Interactive Invisible Hover Zone */}
+                            <rect 
+                              x={xCenter - colWidth / 2} 
+                              y={plotTop} 
+                              width={colWidth} 
+                              height={plotHeight} 
+                              fill="transparent" 
+                            />
+
+                            {/* Point Dot */}
+                            <circle 
+                              cx={xCenter} 
+                              cy={yBar} 
+                              r={isHovered ? 6 : 4} 
+                              fill={isHovered ? "#0284c7" : "#0ea5e9"} 
+                              stroke="#ffffff"
+                              strokeWidth="2"
+                              className="transition-all duration-200"
+                            />
+
+                            {/* Value indicator on top of point */}
+                            <text 
+                              x={xCenter} 
+                              y={yBar - 10} 
+                              textAnchor="middle" 
+                              className="text-[9px] font-black font-mono fill-sky-700"
+                            >
+                              {item.wait}m
+                            </text>
+
+                            {/* Patient Token Text label */}
+                            <text 
+                              x={xCenter} 
+                              y={plotBottom + 16} 
+                              textAnchor="middle" 
+                              className="text-[10px] font-bold fill-slate-500 font-mono"
+                            >
+                              T-{item.token}
+                            </text>
+
+                            {/* Patient Name Text label */}
+                            <text 
+                              x={xCenter} 
+                              y={plotBottom + 28} 
+                              textAnchor="middle" 
+                              className="text-[9px] font-bold fill-slate-400 font-sans"
+                            >
+                              {item.name.split(' ')[0]}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </>
+                  );
                 })()}
 
                 {/* Floating dynamic rich tooltip */}
