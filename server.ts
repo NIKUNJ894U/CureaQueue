@@ -27,11 +27,23 @@ import {
 
 const firebaseConfigPath = join(process.cwd(), "firebase-applet-config.json");
 let firebaseConfig;
-try {
-  firebaseConfig = JSON.parse(readFileSync(firebaseConfigPath, "utf8"));
-} catch (err) {
-  console.error("Critical: Could not read firebase-applet-config.json file:", err);
-  process.exit(1);
+
+if (process.env.FIREBASE_CONFIG) {
+  // Cloud deployment: Read config from environment variable
+  try {
+    firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+  } catch (err) {
+    console.error("Critical: FIREBASE_CONFIG environment variable is not valid JSON.", err);
+    process.exit(1);
+  }
+} else {
+  // Local dev: Read config from JSON file
+  try {
+    firebaseConfig = JSON.parse(readFileSync(firebaseConfigPath, "utf8"));
+  } catch (err) {
+    console.error("Critical: Could not read firebase-applet-config.json file. In production, ensure the FIREBASE_CONFIG environment variable is set:", err);
+    process.exit(1);
+  }
 }
 
 const firebaseApp = initializeApp(firebaseConfig);
