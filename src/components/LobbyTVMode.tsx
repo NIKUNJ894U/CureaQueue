@@ -427,8 +427,8 @@ export default function LobbyTVMode({ state, enableVoice = true, onExitFullscree
                   <path d={completedArea} fill="url(#completedAreaGrad)" />
 
                   {/* Smooth curve lines */}
-                  <path d={waitingLine} fill="none" stroke="#34d399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d={completedLine} fill="none" stroke="#a78bfa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={waitingLine} fill="none" stroke="#34d399" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                  <path d={completedLine} fill="none" stroke="#a78bfa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
                 </svg>
 
                 {/* Horizontal grid lines */}
