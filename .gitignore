@@ -42,3 +42,10 @@ firebase-debug.log*
 # ========================================
 .DS_Store
 Thumbs.db
+
+# ========================================
+# 7. Waste Files
+# ========================================
+firestore.rules
+.env.example
+firebase-blueprint.json
