@@ -2,7 +2,6 @@
 .env
 .env.local
 .env.*.local
-.env.example
 
 # Dependencies
 node_modules/
@@ -13,8 +12,6 @@ build/
 
 # Firebase sensitive configs
 firebase-applet-config.json
-firebase-blueprint.json
-firestore.rules
 
 # Logs
 *.log
