@@ -49,3 +49,5 @@ Thumbs.db
 firestore.rules
 .env.example
 firebase-blueprint.json
+metadata.json
+save-logo.js
